@@ -1,0 +1,63 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["tasks"]  // Usamos el esquema tasks para este microservicio
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+model Tarea {
+  id              Int           @id @default(autoincrement()) @map("ID_Tarea")
+  titulo          String        @map("Titulo") // Título de la tarea
+  descripcion     String        @map("Descripcion") // Descripción de la tarea
+  estado          String        @map("Estado") // Estado de la tarea (e.g. 'Pendiente', 'En Proceso', 'Finalizada')
+  fechaCreacion   DateTime      @default(now()) @map("Fecha_Creacion")
+  fechaEjecucion  DateTime?     @map("Fecha_Ejecucion") // Fecha de ejecución planificada
+  cuenta          String        @map("Cuenta") // Asignación de cuenta
+  responsableId   Int           @map("ID_Responsable") // Persona responsable (relacionada con Usuario)
+
+  // Relación con Usuario (responsable de la tarea)
+  responsable     Usuario       @relation(fields: [responsableId], references: [id], name: "ResponsableTarea")
+
+  // Relación con Comentarios
+  comentarios     Comentario[]  // Una tarea puede tener varios comentarios
+
+  @@map("Tareas")
+  @@schema("tasks")
+}
+
+model Comentario {
+  id              Int       @id @default(autoincrement()) @map("ID_Comentario")
+  contenido       String    @map("Contenido") // Comentario
+  fechaCreacion   DateTime  @default(now()) @map("Fecha_Creacion")
+  tareaId         Int       @map("ID_Tarea")
+  usuarioId       Int       @map("ID_Usuario")
+
+  // Relación con Tarea
+  tarea           Tarea     @relation(fields: [tareaId], references: [id])
+
+  // Relación con Usuario
+  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
+
+  @@map("Comentarios")
+  @@schema("tasks")
+}
+
+model Usuario {
+  id              Int       @id @default(autoincrement()) @map("ID_Usuario")
+  nombre          String    @map("Nombre")
+  apellido        String    @map("Apellido")
+  correo          String    @unique @map("Correo")
+
+  // Relación con Tareas (un usuario puede ser responsable de muchas tareas)
+  tareasResponsable Tarea[]   @relation("ResponsableTarea")
+
+  // Relación con Comentarios (un usuario puede hacer muchos comentarios)
+  comentarios      Comentario[]
+
+  @@map("Usuarios")
+  @@schema("tasks")
+}
